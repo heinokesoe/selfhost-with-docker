@@ -1,0 +1,35 @@
+#!/bin/bash
+
+# This script is for managing mirotalk container
+# Usage:
+#   to start container, "./run start"
+#   to stop container, "./run stop"
+
+source /etc/environment
+
+mirotalk="${DOCKERDIR}/mirotalk"
+
+# The script will ask required things if mirotalk has not been configured yet
+if ! docker network ls | grep mirotalk &>/dev/null ; then
+    docker network create -o "com.docker.network.bridge.enable_icc"="false" mirotalk &>/dev/null
+    read -rp "Enter domain name for mirotalk: " domain
+    secret=$(openssl rand -hex 16)
+    turndomain=$(cat ${DOCKERDIR}/coturn/.domain)
+    turnpassword=$(cat ${DOCKERDIR}/coturn/.password)
+    sed -i "s/change_password/$turnpassword/g" ${mirotalk}/mirotalk.env
+    sed -i "s/change_domain/$turndomain/g" ${mirotalk}/mirotalk.env
+    sed -i "s/change_secret/$secret/g" ${mirotalk}/mirotalk.env
+    sed -i "s/change_domain/$domain/g" ${mirotalk}/mirotalk.nginx
+    cp ${mirotalk}/mirotalk.nginx ${DOCKERDIR}/nginx/conf.d/mirotalk.conf
+fi
+
+# The container will be started if the first argument is "start"
+[[ "$1" == "start" ]] \
+    && docker-compose -f ${mirotalk}/docker-compose.yml pull \
+    && docker-compose -f ${mirotalk}/docker-compose.yml up -d
+
+# The container will be stopped if the first argument is "stop"
+[[ "$1" == "stop" ]] \
+    && docker-compose -f ${mirotalk}/docker-compose.yml down
+
+exit 0

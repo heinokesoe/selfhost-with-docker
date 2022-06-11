@@ -1,0 +1,12 @@
+version: "3"
+services:
+  rustpad:
+    image: ekzhang/rustpad:latest
+    container_name: rustpad
+    ports:
+      - "127.0.0.1:5060:3030"
+    restart:  unless-stopped
+networks:
+  default:
+    external:
+      name: rustpad

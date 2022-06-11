@@ -1,0 +1,18 @@
+version: "3"
+services:
+  dozzle:
+    image: amir20/dozzle:latest
+    container_name: dozzle
+    ports:
+      - "127.0.0.1:5010:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - DOZZLE_USERNAME=change_username
+      - DOZZLE_PASSWORD=change_password
+      - DOZZLE_KEY=change_key
+    restart: unless-stopped
+networks:
+  default:
+    external:
+      name: dozzle

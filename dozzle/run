@@ -1,0 +1,36 @@
+#!/bin/bash
+
+# This script is for managing dozzle container
+# Usage:
+#   to start container, "./run start"
+#   to stop container, "./run stop"
+
+source /etc/environment
+
+dozzle="${DOCKERDIR}/dozzle"
+
+# The script will ask required things if dozzle has not been configured yet
+if ! docker network ls | grep dozzle &>/dev/null ; then
+    docker network create -o "com.docker.network.bridge.enable_icc"="false" dozzle &>/dev/null
+    read -rp "Enter username for dozzle: " username
+    read -srp "Enter password for dozzle: " password
+    echo
+    read -rp "Enter domain name for dozzle: " domain
+    key=$(openssl rand -hex 16)
+    sed -i "s/change_domain/$domain/g" ${dozzle}/dozzle.nginx
+    sed -i "s/change_username/$username/g" ${dozzle}/docker-compose.yml
+    sed -i "s/change_password/$password/g" ${dozzle}/docker-compose.yml
+    sed -i "s/change_key/$key/g" ${dozzle}/docker-compose.yml
+    cp ${dozzle}/dozzle.nginx ${DOCKERDIR}/nginx/conf.d/dozzle.conf
+fi
+
+# The container will be started if the first argument is "start"
+[[ "$1" == "start" ]] \
+    && docker-compose -f ${dozzle}/docker-compose.yml pull \
+    && docker-compose -f ${dozzle}/docker-compose.yml up -d
+
+# The container will be stopped if the first argument is "stop"
+[[ "$1" == "stop" ]] \
+    && docker-compose -f ${dozzle}/docker-compose.yml down
+
+exit 0

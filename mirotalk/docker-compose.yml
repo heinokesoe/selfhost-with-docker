@@ -1,0 +1,14 @@
+version: "3"
+services:
+  mirotalk:
+    image: heinokesoe/mirotalk:latest
+    container_name: mirotalk
+    ports:
+      - "127.0.0.1:5050:3000"
+    volumes:
+      - ./mirotalk.env:/src/.env
+    restart: unless-stopped
+networks:
+  default:
+    external:
+      name: mirotalk

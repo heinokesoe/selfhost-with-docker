@@ -1,0 +1,21 @@
+version: "3"
+services:
+  gitea:
+    image: gitea/gitea:latest
+    container_name: gitea
+    ports:
+      - "127.0.0.1:5030:3000"
+      - "2222:2222"
+    volumes:
+      - ./data:/data
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+    environment:
+      - USER_UID=1000
+      - USER_GID=1000
+      - SSH_LISTEN_PORT=2222
+    restart: unless-stopped
+networks:
+  default:
+    external:
+      name: gitea

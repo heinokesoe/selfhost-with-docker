@@ -1,0 +1,63 @@
+#!/bin/bash
+
+# This script is for getting wildcard certificate from Let's Encrypt using cloudflare api token.
+# Usage: "./run"
+
+source /etc/environment
+
+nginx="${DOCKERDIR}/nginx"
+certbot="${DOCKERDIR}/certbot"
+coturn="${DOCKERDIR}/coturn"
+
+# The script will ask required things if certbot has not been configured yet
+if grep change_token ${certbot}/cloudflare.ini &>/dev/null ; then
+    read -rp "Enter cloudflare api token: " token
+    read -rp "Enter your email for Let's Encrypt: " EMAIL
+    read -rp "Enter your domain with wildcard (e.g. *.example.com): " DOMAIN
+    sed -i "s/change_token/$token/" ${certbot}/cloudflare.ini
+    chmod 600 ${certbot}/cloudflare.ini
+    echo -e "\nEMAIL=$EMAIL\nDOMAIN=$DOMAIN" >> /etc/environment
+fi
+
+# Stop nginx and coturn containers before requesting wildcard certificate from Let's Encrypt
+docker-compose -f ${nginx}/docker-compose.yml down
+docker-compose -f ${coturn}/docker-compose.yml down
+
+
+# Prepare letsencrypt directory to mount
+[[ ! -d ${certbot}/letsencrypt ]] \
+    && mkdir ${certbot}/letsencrypt \
+    || rm -r ${certbot}/letsencrypt/*
+
+# Run certbot
+docker run -it --rm -v ${certbot}/letsencrypt:/etc/letsencrypt \
+    -v ${certbot}/cloudflare.ini:/opt/certbot/.secret/cloudflare.ini \
+    -p 80:80 -p 443:443 certbot/dns-cloudflare:latest certonly --dns-cloudflare \
+    --agree-tos --email $EMAIL --no-eff-email -d "$DOMAIN" \
+    --dns-cloudflare-credentials /opt/certbot/.secret/cloudflare.ini
+
+
+# Backup old certificates in nginx if they exist
+[[ -d ${nginx}/ssl/letsencrypt/backup ]] \
+    && rm ${nginx}/ssl/letsencrypt/backup/* \
+    && mv ${nginx}/ssl/letsencrypt/*.pem ${nginx}/ssl/letsencrypt/backup/ \
+    || mkdir -p ${nginx}/ssl/letsencrypt/backup
+
+# Copy new certificates to nginx
+cp ${certbot}/letsencrypt/live/${DOMAIN#*.}/privkey.pem ${nginx}/ssl/letsencrypt/key.pem
+cp ${certbot}/letsencrypt/live/${DOMAIN#*.}/fullchain.pem ${nginx}/ssl/letsencrypt/fullchain.pem
+
+# Prepare coturn for new certificates
+[[ -f ${coturn}/fullchain.pem ]] \
+    && rm ${coturn}/*.pem
+
+# Copy new certificates to coturn
+cp ${certbot}/letsencrypt/live/${DOMAIN#*.}/privkey.pem ${coturn}/key.pem
+cp ${certbot}/letsencrypt/live/${DOMAIN#*.}/fullchain.pem ${coturn}/fullchain.pem
+chmod +r ${coturn}/key.pem
+
+# Start nginx and coturn containers with new certificates
+docker-compose -f ${nginx}/docker-compose.yml up -d
+docker-compose -f ${coturn}/docker-compose.yml up -d
+
+exit 0

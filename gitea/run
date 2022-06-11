@@ -1,0 +1,30 @@
+#!/bin/bash
+
+# This script is for managing gitea container
+# Usage:
+#   to start container, "./run start"
+#   to stop container, "./run stop"
+
+source /etc/environment
+
+gitea="${DOCKERDIR}/gitea"
+
+# The script will ask required things if gitea has not been configured yet
+if ! docker network ls | grep gitea &>/dev/null ; then
+    docker network create -o "com.docker.network.bridge.enable_icc"="false" gitea &>/dev/null
+    [[ ! -d ${gitea}/data ]] && mkdir ${gitea}/data && chmod 777 ${gitea}/data
+    read -rp "Enter domain name for gitea: " domain
+    sed -i "s/change_domain/$domain/g" ${gitea}/gitea.nginx
+    cp ${gitea}/gitea.nginx ${DOCKERDIR}/nginx/conf.d/gitea.conf
+fi
+
+# The container will be started if the first argument is "start"
+[[ "$1" == "start" ]] \
+    && docker-compose -f ${gitea}/docker-compose.yml pull \
+    && docker-compose -f ${gitea}/docker-compose.yml up -d
+
+# The container will be stopped if the first argument is "stop"
+[[ "$1" == "stop" ]] \
+    && docker-compose -f ${gitea}/docker-compose.yml down
+
+exit 0

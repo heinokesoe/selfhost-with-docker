@@ -1,0 +1,28 @@
+#!/bin/bash
+
+# This script is for updating and stopping all running containers.
+# Usage:
+#   to update all running containers, "./run update"
+#   to stop all running containers, "./run stop"
+
+source /etc/environment
+
+containers=($(docker ps --format "{{.Names}}" | cut -d"_" -f1 | uniq | sed '/watchtower\|shadowbox/d'))
+# All containers will be updated if the first argument is "update"
+if [[ "$1" == "update" ]]; then
+    for container in "${containers[@]}";
+    do
+        ${DOCKERDIR}/${container}/run start
+    done
+    docker image prune -af
+fi
+
+# All containers will be stopped if the first argument is "stop"
+if [[ "$1" == "stop" ]]; then
+    for container in "${containers[@]}";
+    do
+        ${DOCKERDIR}/${container}/run stop
+    done
+fi
+
+exit 0

@@ -1,0 +1,15 @@
+version: "3"
+services:
+  gollum:
+    image: gollumwiki/gollum:master
+    container_name: gollum
+    ports:
+      - "127.0.0.1:5040:4567"
+    volumes:
+      - ./data:/wiki
+    entrypoint: /wiki/entrypoint.sh
+    restart:  unless-stopped
+networks:
+  default:
+    external:
+      name: gollum

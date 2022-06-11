@@ -1,0 +1,19 @@
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    ssl_certificate /etc/nginx/ssl/cert.pem;
+    ssl_certificate_key /etc/nginx/ssl/key.pem;
+
+    access_log  /var/log/nginx/freaks.access.log  main;
+    error_log  /var/log/nginx/freaks.error.log info;
+
+    server_name freaks.dev;
+    
+    root /usr/share/nginx/freaks;
+    index index.html index.htm;
+}
+server {
+    listen 80;
+    server_name freaks.dev;
+    return 301 https://$host$request_uri;
+}

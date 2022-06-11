@@ -1,0 +1,19 @@
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    ssl_certificate /etc/nginx/ssl/letsencrypt/fullchain.pem;
+    ssl_certificate_key /etc/nginx/ssl/letsencrypt/key.pem;
+
+    access_log  /var/log/nginx/circuit.access.log  main;
+    error_log  /var/log/nginx/circuit.error.log info;
+
+    server_name change_domain_circuit;
+    
+    root /usr/share/nginx/circuit;
+    index index.html index.htm;
+}
+server {
+    listen 80;
+    server_name change_domain_circuit;
+    return 301 https://$host$request_uri;
+}

@@ -1,0 +1,33 @@
+#!/bin/bash
+
+# This script is for managing gollum container
+# Usage:
+#   to start container, "./run start"
+#   to stop container, "./run stop"
+
+source /etc/environment
+
+gollum="${DOCKERDIR}/gollum"
+
+# The script will ask required things if gollum has not been configured yet
+if ! docker network ls | grep gollum &>/dev/null ; then
+    docker network create -o "com.docker.network.bridge.enable_icc"="false" gollum &>/dev/null
+    read -rp "Enter git username for gollum: " username
+    read -rp "Enter git email for gollum: " email
+    read -rp "Enter domain name for gollum: " domain
+    sed -i "s/change_domain/$domain/g" ${gollum}/gollum.nginx
+    sed -i "s/change_username/$username/g" ${gollum}/data/entrypoint.sh
+    sed -i "s/change_email/$email/g" ${gollum}/data/entrypoint.sh
+    cp ${gollum}/gollum.nginx ${DOCKERDIR}/nginx/conf.d/gollum.conf
+fi
+
+# The container will be started if the first argument is "start"
+[[ "$1" == "start" ]] \
+    && docker-compose -f ${gollum}/docker-compose.yml pull \
+    && docker-compose -f ${gollum}/docker-compose.yml up -d
+
+# The container will be stopped if the first argument is "stop"
+[[ "$1" == "stop" ]] \
+    && docker-compose -f ${gollum}/docker-compose.yml down
+
+exit 0

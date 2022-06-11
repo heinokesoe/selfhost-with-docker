@@ -1,0 +1,14 @@
+version: "3"
+services:
+  screego:
+    image: screego/server:amd64-1
+    container_name: screego
+    ports:
+      - "127.0.0.1:5080:5080"
+    volumes:
+      - ./server.config:/etc/screego/server.config
+    restart:  unless-stopped
+networks:
+  default:
+    external:
+      name: screego

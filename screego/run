@@ -1,0 +1,34 @@
+#!/bin/bash
+
+# This script is for managing screego container
+# Usage:
+#   to start container, "./run start"
+#   to stop container, "./run stop"
+
+source /etc/environment
+
+screego="${DOCKERDIR}/screego"
+
+# The script will ask required things if screego has not been configured yet
+if ! docker network ls | grep screego &>/dev/null ; then
+    docker network create -o "com.docker.network.bridge.enable_icc"="false" screego &>/dev/null
+    secret=$(openssl rand -hex 16)
+    turn_secret=$(cat ${DOCKERDIR}/coturn/.secret)
+    read -rp "Enter domain name for screego: " domain
+    sed -i "s/change_domain/$domain/g" ${screego}/screego.nginx
+    sed -i "s/change_secret/$secret/g" ${screego}/server.config
+    sed -i "s/change_ip/$IP/g" ${screego}/server.config
+    sed -i "s/change_turn_secret/$turn_secret/g" ${screego}/server.config
+    cp ${screego}/screego.nginx ${DOCKERDIR}/nginx/conf.d/screego.conf
+fi
+
+# The container will be started if the first argument is "start"
+[[ "$1" == "start" ]] \
+    && docker-compose -f ${screego}/docker-compose.yml pull \
+    && docker-compose -f ${screego}/docker-compose.yml up -d
+
+# The container will be stopped if the first argument is "stop"
+[[ "$1" == "stop" ]] \
+    && docker-compose -f ${screego}/docker-compose.yml down
+
+exit 0

@@ -1,0 +1,14 @@
+version: "3"
+services:
+  rwtxt:
+    image: schollz/rwtxt:latest
+    container_name: rwtxt
+    ports:
+      - "127.0.0.1:5070:8152"
+    volumes:
+      - ./data:/data
+    restart:  unless-stopped
+networks:
+  default:
+    external:
+      name: rwtxt

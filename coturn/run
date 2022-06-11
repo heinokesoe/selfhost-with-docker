@@ -1,0 +1,40 @@
+#!/bin/bash
+
+# This script is for managing coturn container
+# Usage:
+#   to start container, "./run start"
+#   to stop container, "./run stop"
+
+source /etc/environment
+
+coturn="${DOCKERDIR}/coturn"
+
+# Check certbot has been run first before coturn to have certificates coturn needed
+[[ ! -f ${coturn}/fullchain.pem ]] \
+    && echo -e "\nYou will need to run certbot first. Otherwise coturn won't work properly.\n" \
+    && exit 1
+
+# The script will ask required things if coturn has not been configured yet
+if [[ ! -f ${coturn}/.secret ]] ; then
+    read -rp "Enter domain name for coturn: " domain
+    secret=$(openssl rand -hex 16)
+    password=$(openssl rand -hex 16)
+    echo $secret > ${coturn}/.secret
+    echo $password > ${coturn}/.password
+    echo $domain > ${coturn}/.domain
+    sed -i "s/change_ip/$IP/" ${coturn}/turn_with_secret.conf ${coturn}/turn_with_password.conf
+    sed -i "s/change_domain/$domain/" ${coturn}/turn_with_secret.conf ${coturn}/turn_with_password.conf
+    sed -i "s/change_secret/$secret/" ${coturn}/turn_with_secret.conf
+    sed -i "s/change_password/$password/" ${coturn}/turn_with_password.conf
+fi
+
+# The container will be started if the first argument is "start"
+[[ "$1" == "start" ]] \
+    && docker-compose -f ${coturn}/docker-compose.yml pull \
+    && docker-compose -f ${coturn}/docker-compose.yml up -d
+
+# The container will be stopped if the first argument is "stop"
+[[ "$1" == "stop" ]] \
+    && docker-compose -f ${coturn}/docker-compose.yml down
+
+exit 0

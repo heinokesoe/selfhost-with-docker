@@ -1,0 +1,54 @@
+#!/bin/bash
+
+# This script is for managing nginx container
+# Usage:
+#   to start container, "./run start"
+#   to stop container, "./run stop"
+
+source /etc/environment
+
+nginx="${DOCKERDIR}/nginx"
+
+# Check certbot has been run first before nginx to have certificates nginx needed
+[[ ! -d ${nginx}/ssl ]] \
+    && echo -e "\nYou will need to run certbot first. Otherwise nginx won't work properly.\n" \
+    && exit 1
+
+# Prepare for cyberchef
+if [[ ! -d ${nginx}/www/cyberchef ]] ; then
+    read -rp "Enter domain name for cyberchef: " domain_cyberchef
+    sed -i "s/change_domain_cyberchef/$domain_cyberchef/g" ${nginx}/cyberchef.nginx
+    cp ${nginx}/cyberchef.nginx ${nginx}/conf.d/cyberchef.conf
+    tar -xf ${nginx}/www/cyberchef.tar.gz -C ${nginx}/www/
+fi
+
+# Prepare for circuit
+if [[ ! -d ${nginx}/www/circuit ]] ; then
+    read -rp "Enter domain name for circuit: " domain_circuit
+    sed -i "s/change_domain_circuit/$domain_circuit/g" ${nginx}/circuit.nginx
+    cp ${nginx}/circuit.nginx ${nginx}/conf.d/circuit.conf
+    tar -xf ${nginx}/www/circuit.tar.gz -C ${nginx}/www/
+fi
+
+# Prepare for freaks.dev
+if [[ ! -d ${nginx}/www/freaks ]] ; then
+    cp ${nginx}/freaks.nginx ${nginx}/conf.d/freaks.conf
+    tar -xf ${nginx}/www/freaks.tar.gz -C ${nginx}/www/
+fi
+
+# Prepare for 3dcelist
+if [[ ! -d ${nginx}/www/3dcelist ]] ; then
+    cp ${nginx}/3dcelist.nginx ${nginx}/conf.d/3dcelist.conf
+    tar -xf ${nginx}/www/3dcelist.tar.gz -C ${nginx}/www/
+fi
+
+# The container will be started if the first argument is "start"
+[[ "$1" == "start" ]] \
+    && docker-compose -f ${nginx}/docker-compose.yml pull \
+    && docker-compose -f ${nginx}/docker-compose.yml up -d
+
+# The container will be stopped if the first argument is "stop"
+[[ "$1" == "stop" ]] \
+    && docker-compose -f ${nginx}/docker-compose.yml down
+
+exit 0

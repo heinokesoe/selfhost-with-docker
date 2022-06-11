@@ -1,0 +1,15 @@
+version: "3"
+services:
+  filebrowser:
+    image: filebrowser/filebrowser:latest
+    container_name: filebrowser
+    ports:
+      - "127.0.0.1:5020:80"
+    volumes:
+      - /root:/srv
+    command: -d /srv/database.db
+    restart:  unless-stopped
+networks:
+  default:
+    external:
+      name: filebrowser

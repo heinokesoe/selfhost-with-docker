@@ -1,0 +1,30 @@
+#!/bin/bash
+
+# This script is for managing rwtxt container
+# Usage:
+#   to start container, "./run start"
+#   to stop container, "./run stop"
+
+source /etc/environment
+
+rwtxt="${DOCKERDIR}/rwtxt"
+
+# The script will ask required things if rwtxt has not been configured yet
+if ! docker network ls | grep rwtxt &>/dev/null ; then
+    docker network create -o "com.docker.network.bridge.enable_icc"="false" rwtxt &>/dev/null
+    mkdir ${rwtxt}/data
+    read -rp "Enter domain name for rwtxt: " domain
+    sed -i "s/change_domain/$domain/g" ${rwtxt}/rwtxt.nginx
+    cp ${rwtxt}/rwtxt.nginx ${DOCKERDIR}/nginx/conf.d/rwtxt.conf
+fi
+
+# The container will be started if the first argument is "start"
+[[ "$1" == "start" ]] \
+    && docker-compose -f ${rwtxt}/docker-compose.yml pull \
+    && docker-compose -f ${rwtxt}/docker-compose.yml up -d
+
+# The container will be stopped if the first argument is "stop"
+[[ "$1" == "stop" ]] \
+    && docker-compose -f ${rwtxt}/docker-compose.yml down
+
+exit 0
