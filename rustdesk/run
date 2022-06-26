@@ -1,0 +1,28 @@
+#!/bin/bash
+
+# This script is for managing rustdesk container
+# Usage:
+#   to start container, "./run start"
+#   to stop container, "./run stop"
+
+source /etc/environment
+
+rustdesk="${DOCKERDIR}/rustdesk"
+
+# The script will ask required things if rustdesk has not been configured yet
+if ! docker network ls | grep rustdesk &>/dev/null ; then
+    docker network create -o "com.docker.network.bridge.enable_icc"="false" rustdesk &>/dev/null
+    read -rp "Enter domain name for rustdesk: " domain
+    sed -i "s/change_domain/$domain/" ${rustdesk}/docker-compose.yml
+fi
+
+# The container will be started if the first argument is "start"
+[[ "$1" == "start" ]] \
+    && docker-compose -f ${rustdesk}/docker-compose.yml pull \
+    && docker-compose -f ${rustdesk}/docker-compose.yml up -d
+
+# The container will be stopped if the first argument is "stop"
+[[ "$1" == "stop" ]] \
+    && docker-compose -f ${rustdesk}/docker-compose.yml down
+
+exit 0
