@@ -4,7 +4,7 @@ services:
     image: teddysun/kms:latest
     container_name: kms
     ports:
-      - "1688:1688"
+      - "3000:1688"
     restart:  unless-stopped
 networks:
   default:
